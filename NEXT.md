@@ -1,6 +1,6 @@
 # NEXT
 
-State (2026-11-06, end of the unattended G2·C run on Claude Fable 5.1): **G2·C built on branch `kickoff`**, one PR open against `main`, unmerged. **79 tests pass** (6 fixtures, 28 safety, 8 layer, 8 HubSpot, 2 directory, 13 workers, 7 crew, 7 webhook/CLI); none skipped, none failing. **Cost of live model calls this run: $0.00** — no `ANTHROPIC_API_KEY` was present, so no model was called; the crew ran on fixtures with the recorded-response fake (D-16). **No HubSpot call was made** (no token; the real client exists and was never exercised, D-8).
+State (2026-11-06, end of the unattended G2·C run on Claude Fable 5.1): **G2·C built on branch `kickoff`**, one PR open against `main` ([#1](https://github.com/shanelabountyai/g2-lead-triage-crew/pull/1)), unmerged. **79 tests pass** (6 fixtures, 28 safety, 8 layer, 8 HubSpot, 2 directory, 13 workers, 7 crew, 7 webhook/CLI); none skipped, none failing. **Cost of live model calls this run: $0.00** — no `ANTHROPIC_API_KEY` was present, so no model was called; the crew ran on fixtures with the recorded-response fake (D-16). **No HubSpot call was made** (no token; the real client exists and was never exercised, D-8).
 
 ## Done (PRD acceptance criteria)
 
