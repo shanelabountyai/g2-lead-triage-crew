@@ -19,7 +19,7 @@ Also: D-1..D-19 in `docs/DECISIONS.md`; G0 pinned at `1cb74df` and called in-pro
 - **`RealHubSpot` has never talked to HubSpot.** Request shapes are tested with a mock transport; the synthetic-only write guard is tested.
 - **G0 has no `rubric.register` tool**, so the rubric is loaded through G0's seed loader in-process (D-2). This is the one write to the layer's store not made through a tool. Proposed for G0 v1.1.
 - **Enricher is synthetic-only** (D-6). Live web lookup is your call.
-- The webhook has no auth beyond HubSpot's v3 signature (checked only when `HUBSPOT_CLIENT_SECRET` is set).
+- The webhook has no auth beyond HubSpot's v3 signature (required whenever HubSpot or the model is live; `triage serve` refuses to start without `HUBSPOT_CLIENT_SECRET` then, D-21). Retry dedupe is in memory and lost on restart (D-22).
 
 ## Owner's hand steps
 

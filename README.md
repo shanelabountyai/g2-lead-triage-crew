@@ -59,7 +59,7 @@ uv sync --all-groups                     # Python 3.12 venv; pins g0-shared-laye
 uv run pytest                            # 79 tests, ~2 s, no network, no model
 uv run triage run --fixtures             # 20 leads through the crew on the recorded fake → out/<run_id>/{run-log.json,notes.md,eval-report.md}
 uv run triage eval --run-log out/<run_id>/run-log.json
-uv run triage serve                      # the webhook on :8042 (fake HubSpot seeded from fixtures/leads.json)
+uv run triage serve                      # the webhook on :8042 (fake HubSpot seeded from fixtures/leads.json; real client with HUBSPOT_PRIVATE_APP_TOKEN, D-20)
 uv run triage replay                     # in another shell: posts one contact.creation event per fixture lead
 ```
 
@@ -85,7 +85,7 @@ Models: Orchestrator / Qualifier / Drafter `claude-sonnet-5-5`, Enricher `claude
 - The real HubSpot client has never talked to HubSpot; loading the 20 synthetic contacts and the live note write-back are hand steps (H3, H4).
 - The Enricher is synthetic-only by decision (D-6); live web lookup is the owner's call.
 - G0's evaluation contract has no rubric-registration tool, so the rubric is loaded through G0's seed loader in-process (D-2) — the one place this consumer writes to the layer's store other than through a tool. A `rubric.register` v1.1 tool is proposed in `NEXT.md`.
-- Single process, stdio-free (G0 is called in-process, as G1·C does); no auth on the webhook beyond HubSpot's v3 signature.
+- Single process, stdio-free (G0 is called in-process, as G1·C does); no auth on the webhook beyond HubSpot's v3 signature, which is required whenever HubSpot or the model is live (unsigned only in fixture/fake mode, D-21); the webhook dedupes HubSpot retries in memory (D-22).
 
 ## Layout
 
