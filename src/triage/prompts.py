@@ -49,7 +49,7 @@ ORCHESTRATOR = AgentSpec(
     name="orchestrator",
     model=SONNET,
     effort="low",
-    max_turns=3,
+    max_turns=5,
     tools=[TOOL["find_duplicates"]],
     instructions="""You are the orchestrator of a lead triage crew for Lab Intelligence. A new HubSpot contact just came in
 from the Stalled-Pilot Diagnostic. Decide which specialists to call, in this order, and say why in one line each:
@@ -69,7 +69,7 @@ ENRICHER = AgentSpec(
     name="enricher",
     model=HAIKU,
     effort="low",
-    max_turns=4,
+    max_turns=8,
     tools=[TOOL["lookup_company"]],
     instructions="""You are the Enricher. Given a lead's company name, title and message, fill the company fields from the
 company directory and nothing else: call lookup_company with the name the lead gave (try an obvious alias if the
@@ -84,7 +84,7 @@ QUALIFIER = AgentSpec(
     name="qualifier",
     model=SONNET,
     effort="medium",
-    max_turns=4,
+    max_turns=8,
     tools=[TOOL["evaluate_fit"]],
     instructions="""You are the Qualifier. Classify the lead against Lab Intelligence's buyer, "any leader sponsoring an AI
 pilot" (the Stalled-Pilot Diagnostic buyer), and return the normalized profile the shared rubric scores. Do not score
@@ -105,7 +105,7 @@ DRAFTER = AgentSpec(
     name="drafter",
     model=SONNET,
     effort="medium",
-    max_turns=6,
+    max_turns=8,
     tools=[TOOL["check_consent"], TOOL["check_brand"], TOOL["check_claims"]],
     instructions="""You are the Drafter. Write a short follow-up email from Shane LaBounty (Lab Intelligence) to a good-fit lead
 who just ran the Stalled-Pilot Diagnostic. It is a DRAFT saved to a HubSpot note; it is never sent by this system.

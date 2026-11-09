@@ -39,3 +39,14 @@ def hubspot(leads):
 @pytest.fixture
 def directory():
     return Directory()
+
+
+import pytest
+
+from triage import llm as _llm
+
+
+@pytest.fixture(autouse=True)
+def _frozen_handmade_responses(monkeypatch):
+    """Tests replay the frozen hand-made responses; fixtures/recorded-responses.json is real model output now."""
+    monkeypatch.setattr(_llm, "RECORDED_FILE", _llm.Path(__file__).parent / "data" / "handmade-responses.json")

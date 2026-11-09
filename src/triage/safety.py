@@ -148,7 +148,7 @@ def make_block_hook(
         tool_name = str(input_data.get("tool_name") or "")
         tool_input = input_data.get("tool_input") or {}
         reason = classify_tool_call(tool_name, tool_input if isinstance(tool_input, dict) else {"value": tool_input})
-        if reason is None and allowed is not None and tool_name not in allowed:
+        if reason is None and allowed is not None and tool_name not in allowed and tool_name != "StructuredOutput":  # SDK's own answer channel, no side effect
             reason = f"tool '{tool_name}' is not in the {agent}'s tool list ({sorted(allowed)})"
         if reason is None:
             return {}

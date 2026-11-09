@@ -110,3 +110,11 @@ def test_assert_synthetic_accepts_example_com_only():
 def test_classify_is_pure():
     assert classify_tool_call("write_note", {"contact_id": "1", "body": "x"}) is None
     assert classify_tool_call("send_note", {}) is not None
+
+
+async def test_structured_output_is_not_blocked_but_unlisted_tools_still_are():
+    hook = make_block_hook(SafetyLog(), agent="orchestrator", allowed_tools=["mcp__triage__find_duplicates"])
+    ok = await hook(pre_tool_use("StructuredOutput", {"call_enricher": True}), "t1", None)
+    assert "deny" not in str(ok)
+    no = await hook(pre_tool_use("mcp__triage__lookup_company", {}), "t2", None)
+    assert no["hookSpecificOutput"]["permissionDecision"] == "deny"

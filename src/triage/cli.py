@@ -53,7 +53,7 @@ def cmd_run(args: argparse.Namespace) -> int:
         Path(args.report).write_text(report, encoding="utf-8")
     correct, total, _ = accuracy(leads, results)
     cost, calls = crew.run_cost()
-    measured = bool(results) and all(r.measured for r in results)
+    measured = bool(results) and bool(crew.caller.measured)
     print(f"run {crew.run_id}: {len(results)} leads, {len(crew.hubspot.notes)} notes, band accuracy {correct}/{total}, "
           f"cost {'$%.4f' % cost if measured else 'not measured live'}, blocked attempts {len(crew.blocked)}, layer calls {calls}")
     print(f"wrote {out}/run-log.json, notes.md, eval-report.md" + (f" and {args.report}" if args.report else ""))

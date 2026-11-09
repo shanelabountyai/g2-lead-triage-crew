@@ -1,6 +1,14 @@
 # NEXT
 
-State (2026-11-06, end of the unattended G2·C run on Claude Fable 5.1): **G2·C built on branch `kickoff`**, one PR open against `main` ([#1](https://github.com/shanelabountyai/g2-lead-triage-crew/pull/1)), unmerged. **79 tests pass** (6 fixtures, 28 safety, 8 layer, 8 HubSpot, 2 directory, 13 workers, 7 crew, 7 webhook/CLI); none skipped, none failing. **Cost of live model calls this run: $0.00** — no `ANTHROPIC_API_KEY` was present, so no model was called; the crew ran on fixtures with the recorded-response fake (D-16). **No HubSpot call was made** (no token; the real client exists and was never exercised, D-8).
+State (2026-11-09): **H2 done — first live run.** 20 leads, band accuracy **20/20 live**, **$0.0330 per lead, $0.6591 for the run** (plus a few cents from three aborted attempts; ≈ $0.70 of the $10 cap). `fixtures/recorded-responses.json` is now real model output; the old hand-made file is frozen at `tests/data/handmade-responses.json` (autouse fixture in `tests/conftest.py`). **93 tests pass.**
+
+Three bugs the first live run exposed (the SDK path had never run): (1) our PreToolUse hook denied the SDK's own `StructuredOutput` tool because it was not on an agent's allow-list — now exempt, with a test; (2) turn limits too tight for the structured-output turn (orchestrator 3→5, others → 8); (3) `parse_json` now reads the last text block and the first JSON object. Also fixed: the report said "not measured live" whenever any lead made no model call (duplicates); it now follows the caller. Empty `NAME=` lines in `.env` override defaults (`G0_RUN_CAP_USD=` crashes) — delete unused lines.
+
+Remaining hand steps: H1 review PR, H3/H4 HubSpot load and live write-back, H5 G2·B (n8n), H6 two decisions. Strike H2 below.
+
+---
+
+Previous state: State (2026-11-06, end of the unattended G2·C run on Claude Fable 5.1): **G2·C built on branch `kickoff`**, one PR open against `main` ([#1](https://github.com/shanelabountyai/g2-lead-triage-crew/pull/1)), unmerged. **79 tests pass** (6 fixtures, 28 safety, 8 layer, 8 HubSpot, 2 directory, 13 workers, 7 crew, 7 webhook/CLI); none skipped, none failing. **Cost of live model calls this run: $0.00** — no `ANTHROPIC_API_KEY` was present, so no model was called; the crew ran on fixtures with the recorded-response fake (D-16). **No HubSpot call was made** (no token; the real client exists and was never exercised, D-8).
 
 ## Done (PRD acceptance criteria)
 

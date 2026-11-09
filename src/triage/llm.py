@@ -132,7 +132,7 @@ class AgentSdkCaller:
             raise ModelCallError(f"{spec.name}: SDK error {result.subtype} status={result.api_error_status} {result.errors or ''}")
         parsed = result.structured_output
         if not isinstance(parsed, dict):
-            parsed = parse_json("".join(text_parts) or (result.result or ""), spec.name)
+            parsed = parse_json((text_parts[-1] if text_parts else "") or (result.result or ""), spec.name)
         usage = result.usage or {}
         return CallResult(
             agent=spec.name, model=model_seen, parsed=parsed,
@@ -150,7 +150,7 @@ def parse_json(text: str, agent: str) -> dict[str, Any]:
         t = t.strip("`")
         t = t[t.find("{"):]
     try:
-        out = json.loads(t)
+        out, _ = json.JSONDecoder().raw_decode(t)  # first object only; models sometimes repeat it
     except json.JSONDecodeError as e:
         raise ModelCallError(f"{agent}: response is not JSON ({e}): {t[:200]!r}") from e
     if not isinstance(out, dict):

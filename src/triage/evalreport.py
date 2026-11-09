@@ -28,7 +28,7 @@ def accuracy(leads: list[LabeledLead], results: list[TriageResult]) -> tuple[int
 def build_report(crew: Crew, leads: list[LabeledLead], results: list[TriageResult]) -> str:
     correct, total, misses = accuracy(leads, results)
     by = {r.lead_id: r for r in results}
-    measured = bool(results) and all(r.measured for r in results)
+    measured = bool(results) and bool(crew.caller.measured)
     run_cost, layer_calls = crew.run_cost()
     per_lead = (run_cost / len(results)) if results else 0.0
     mode = "live (Claude Agent SDK)" if measured else f"fixture mode — recorded fake ({crew.caller.name}); usage is zero, so cost is **not measured live**"
