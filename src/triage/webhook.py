@@ -3,7 +3,9 @@
 HubSpot posts a JSON array of events; each carries `objectId` (the contact id), `subscriptionType`, `portalId`,
 `occurredAt`, `eventId`. The app fetches the contact through the HubSpot interface (the fake in local replay, the
 real client when a token is set), runs the crew, and answers with what it did. With `HUBSPOT_CLIENT_SECRET` set the
-v3 signature is verified; without it (local replay) the check is skipped and said so in the response headers.
+v3 signature is verified. Unsigned mode is allowed only in fixture/fake mode (fake HubSpot and the recorded model): with a
+real HubSpot client or a live model key and no secret the app refuses to start, and a request that reaches a live crew
+without a secret is 401 (D-21).
 """
 
 from __future__ import annotations
@@ -48,11 +50,33 @@ def verify_v3(secret: str, request_method: str, request_uri: str, body: bytes, t
     return True, "ok"
 
 
-def create_app(crew: Crew | Callable[[], Crew], *, client_secret: str | None = None, public_url: str | None = None) -> FastAPI:
+class UnsignedLiveConfig(RuntimeError):
+    """A real HubSpot client or a live model key is configured but no HUBSPOT_CLIENT_SECRET: refuse to start (D-21)."""
+
+
+def crew_is_live(crew: Crew) -> bool:
+    """Live = anything that reaches outside the process: the real HubSpot client or a live model caller."""
+    return crew.hubspot.name == "real" or crew.caller.name != "recorded"
+
+
+def env_is_live() -> bool:
+    return bool(os.environ.get("HUBSPOT_PRIVATE_APP_TOKEN") or os.environ.get("ANTHROPIC_API_KEY"))
+
+
+def create_app(crew: Crew | Callable[[], Crew], *, client_secret: str | None = None, public_url: str | None = None,
+               live: bool | None = None) -> FastAPI:
     """`crew` may be a factory: it is then built on the first request, in the server's own thread and loop, because
-    the layer's SQLite connection (G0 storage, not thread-safe by design) must live where the requests run."""
-    app = FastAPI(title="Lead Triage Crew (G2·C) webhook", version="0.1.0")
+    the layer's SQLite connection (G0 storage, not thread-safe by design) must live where the requests run.
+
+    `live` says whether the crew will reach a real HubSpot or a live model; by default it is read from the crew (when
+    given one) or the environment. Live without a secret fails closed (D-21)."""
     secret = client_secret if client_secret is not None else os.environ.get("HUBSPOT_CLIENT_SECRET")
+    if live is None:
+        live = crew_is_live(crew) if isinstance(crew, Crew) else env_is_live()
+    if live and not secret:
+        raise UnsignedLiveConfig("a real HubSpot client or a live model key is configured but HUBSPOT_CLIENT_SECRET is not set; "
+                                 "refusing to serve unsigned webhooks (unsigned mode is for fixture/fake mode only, D-21)")
+    app = FastAPI(title="Lead Triage Crew (G2·C) webhook", version="0.1.0")
     app.state.crew = crew if isinstance(crew, Crew) else None
     factory = None if isinstance(crew, Crew) else crew
 
@@ -80,8 +104,11 @@ def create_app(crew: Crew | Callable[[], Crew], *, client_secret: str | None = N
             if not ok:
                 return JSONResponse({"error": f"signature: {why}"}, status_code=401)
             response.headers["X-Triage-Signature"] = "verified"
+        elif crew_is_live(crew):  # belt and braces: the built crew is live although startup was told it was not
+            return JSONResponse({"error": "signature: HUBSPOT_CLIENT_SECRET is not set and the crew is live; unsigned requests are refused (D-21)"},
+                                status_code=401)
         else:
-            response.headers["X-Triage-Signature"] = "skipped (no HUBSPOT_CLIENT_SECRET)"
+            response.headers["X-Triage-Signature"] = "skipped (fixture/fake mode, no HUBSPOT_CLIENT_SECRET)"
         try:
             events = await request.json()
         except ValueError:

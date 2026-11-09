@@ -8,6 +8,7 @@ import pytest
 
 from triage import cli
 from triage.crew import Crew
+from triage.llm import RecordedCaller
 from triage.models import load_leads
 from triage.webhook import SIGNATURE_HEADER, TIMESTAMP_HEADER, create_app, event_for, sign_v3, verify_v3
 
@@ -158,3 +159,51 @@ def test_serve_uses_the_real_client_when_a_token_is_set(monkeypatch):
     with pytest.raises(SafetyViolation):
         guarded.create_note("77", "x")
     assert [m for m, _ in calls] == ["GET"]
+
+
+# -- review fix 2 (D-21): unsigned mode only in fixture/fake mode ---------------------------------
+
+
+def test_serve_refuses_to_start_unsigned_with_a_real_hubspot_token(monkeypatch, capsys):
+    import uvicorn
+
+    monkeypatch.setenv("HUBSPOT_PRIVATE_APP_TOKEN", "pat-test-not-real")
+    monkeypatch.setattr(uvicorn, "run", lambda *a, **kw: pytest.fail("the server must not start"))
+    assert cli.main(["serve"]) == 2
+    assert "HUBSPOT_CLIENT_SECRET is not set" in capsys.readouterr().err
+
+
+def test_create_app_refuses_unsigned_with_a_live_model_key(monkeypatch):
+    from triage.webhook import UnsignedLiveConfig
+
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-test-not-real")  # nothing is built or called: the app refuses first
+    with pytest.raises(UnsignedLiveConfig):
+        create_app(lambda: pytest.fail("no crew may be built"), client_secret=None)
+    with pytest.raises(UnsignedLiveConfig):
+        cli.serve_app(_serve_args())
+
+
+def test_create_app_refuses_a_live_crew_instance_without_a_secret(crew):
+    from triage.webhook import UnsignedLiveConfig
+
+    crew.caller.name = "claude-agent-sdk"  # stand-in for a live caller; nothing is called
+    with pytest.raises(UnsignedLiveConfig):
+        create_app(crew, client_secret=None)
+
+
+async def test_a_live_crew_behind_an_unsigned_app_gets_401_on_every_request(layer):
+    from triage.hubspot import RealHubSpot
+
+    calls = []
+    real = RealHubSpot(token="pat-test-not-real", transport=httpx.MockTransport(lambda r: calls.append(r) or httpx.Response(500)))
+    live_crew = Crew(layer=layer, hubspot=real, caller=RecordedCaller(), run_id="g2c-live")
+    app = create_app(lambda: live_crew, client_secret=None, live=False)  # startup told the wrong thing on purpose
+    async with await _client(app) as c:
+        r = await c.post("/hubspot/webhook", json=[event_for("hs-1001")])
+        assert r.status_code == 401 and "unsigned requests are refused" in r.json()["error"]
+    assert calls == []  # HubSpot was never reached
+
+
+def test_fake_mode_banner_says_unsigned_is_fixture_only():
+    _, banner = cli.serve_app(_serve_args())
+    assert "signature check: off — fixture/fake mode only" in banner and "model: recorded fake" in banner

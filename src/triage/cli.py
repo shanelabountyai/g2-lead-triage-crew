@@ -82,16 +82,25 @@ def serve_app(args: argparse.Namespace) -> tuple[Any, str]:
     from triage.webhook import create_app
 
     hubspot = _hubspot_for_serve()  # built here so the banner reports it; the crew (SQLite) is built in the server's loop
-    app = create_app(lambda: _crew(args, hubspot=hubspot), public_url=args.public_url)
+    live = hubspot.name == "real" or bool(os.environ.get("ANTHROPIC_API_KEY"))
+    # raises UnsignedLiveConfig when live and no HUBSPOT_CLIENT_SECRET (D-21)
+    app = create_app(lambda: _crew(args, hubspot=hubspot), public_url=args.public_url, live=live)
+    signature = "on" if os.environ.get("HUBSPOT_CLIENT_SECRET") else "off — fixture/fake mode only (fake HubSpot, recorded model, no HUBSPOT_CLIENT_SECRET)"
     banner = (f"serving on http://{args.host}:{args.port} — POST /hubspot/webhook, GET /health; HubSpot client: {hubspot_label(hubspot)}; "
-              f"signature check: {'on' if os.environ.get('HUBSPOT_CLIENT_SECRET') else 'off (no HUBSPOT_CLIENT_SECRET)'}")
+              f"model: {'live' if os.environ.get('ANTHROPIC_API_KEY') else 'recorded fake'}; signature check: {signature}")
     return app, banner
 
 
 def cmd_serve(args: argparse.Namespace) -> int:
     import uvicorn
 
-    app, banner = serve_app(args)
+    from triage.webhook import UnsignedLiveConfig
+
+    try:
+        app, banner = serve_app(args)
+    except UnsignedLiveConfig as e:
+        print(f"triage serve: {e}", file=sys.stderr)
+        return 2
     print(banner, file=sys.stderr)
     uvicorn.run(app, host=args.host, port=args.port, log_level="info")
     return 0
