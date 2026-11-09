@@ -1,5 +1,9 @@
 # NEXT
 
+State (2026-11-09, close): **Committed and pushed on `kickoff` (2e10d86); eval report carries the live HubSpot numbers.** Nothing left for the agent. Owner steps only: H1 review/merge PR #1, H5 build G2·B in n8n by hand, then compare on AC 5. Webhook path (HUBSPOT_CLIENT_SECRET, tunnel) still untested live.
+
+---
+
 State (2026-11-09, late): **Duplicate miss fixed (D-26).** Cause: HubSpot ignores `createdate` on create, the batch shared one timestamp, strict `<` found no older twin. `find_duplicate` now orders by (createdate, numeric id); new test, **94 tests pass**; re-run live on the two contacts: both `duplicate`, $0. The earlier run's 18/20 stands as the first-live-run finding; the other 18 were right. Each of those two contacts now holds a wrong earlier note plus the correct one. Uncommitted: cli.py (`live`), bands.py, tests, DECISIONS, NEXT. Next: commit and push on `kickoff`, update docs/eval-report.md with the live HubSpot numbers (18/20 then fix, $0.7274), then H5 (n8n) and H1 (PR review).
 
 ---
