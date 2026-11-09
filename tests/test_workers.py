@@ -174,3 +174,14 @@ def test_find_duplicate_rule(hubspot, leads):
     assert find_duplicate(hubspot, by_id(leads, "hs-1001")) is None          # the original is not a duplicate of its copy
     assert find_duplicate(hubspot, by_id(leads, "hs-1019")) is None
     assert find_duplicate(hubspot, by_id(leads, "hs-1002")) is None
+
+
+def test_find_duplicate_same_createdate_falls_back_to_id(hubspot, leads):
+    """HubSpot stamps a whole batch with one createdate (seen live): the lower numeric id is the older contact."""
+    from triage.hubspot import FakeHubSpot
+    twin = by_id(leads, "hs-1018").model_copy(update={"id": "951", "created_at": "2026-11-09T18:43:02.409Z"})
+    orig = by_id(leads, "hs-1001").model_copy(update={"id": "940", "created_at": "2026-11-09T18:43:02.409Z"})
+    fake = FakeHubSpot()
+    fake.add_contact(orig); fake.add_contact(twin)
+    assert find_duplicate(fake, twin).id == "940"
+    assert find_duplicate(fake, orig) is None

@@ -1,5 +1,17 @@
 # NEXT
 
+State (2026-11-09, late): **Duplicate miss fixed (D-26).** Cause: HubSpot ignores `createdate` on create, the batch shared one timestamp, strict `<` found no older twin. `find_duplicate` now orders by (createdate, numeric id); new test, **94 tests pass**; re-run live on the two contacts: both `duplicate`, $0. The earlier run's 18/20 stands as the first-live-run finding; the other 18 were right. Each of those two contacts now holds a wrong earlier note plus the correct one. Uncommitted: cli.py (`live`), bands.py, tests, DECISIONS, NEXT. Next: commit and push on `kickoff`, update docs/eval-report.md with the live HubSpot numbers (18/20 then fix, $0.7274), then H5 (n8n) and H1 (PR review).
+
+---
+
+State (2026-11-09, evening): **H4 done, without the webhook** (owner chose to skip it). New `uv run --env-file .env triage live` runs the crew on the 20 HubSpot contacts (the CLI does not load `.env` itself, so `--env-file` is required) and writes notes on them, nothing sent. Run `g2c-20261109-184713`: 20/20 triaged, **$0.7274 ($0.0364 per lead)**, 1 blocked attempt, 18 notes carry drafts or bands as expected. **Live-vs-HubSpot band accuracy 18/20**: both misses are the duplicate pair, `ada.test01+again@` and `tam.testperson@` came back "good fit" instead of "duplicate". Suspect: the 20 contacts were batch-created in the same second (tie on createdate, or HubSpot search lag), so `find_duplicate` saw no older contact. Notes are now on those 20 contacts in HubSpot. Not yet diagnosed or fixed. Webhook path (HUBSPOT_CLIENT_SECRET, tunnel) still untested live.
+
+---
+
+State (2026-11-09, later): **H3 done.** 20 synthetic contacts created in HubSpot portal 246746597 via the service key (scopes: contacts read/write). Ids in `fixtures/hubspot-batch-result.json` (589282825977, 589282826938–956). Created a custom contact property `numberofemployees` (number) because contacts have none natively; delete it in HubSpot to undo. Service-key scope changes took a minute or two to apply (403 then 200). Next: H4 (live write-back, needs `HUBSPOT_CLIENT_SECRET`).
+
+---
+
 State (2026-11-09): **H2 done — first live run.** 20 leads, band accuracy **20/20 live**, **$0.0330 per lead, $0.6591 for the run** (plus a few cents from three aborted attempts; ≈ $0.70 of the $10 cap). `fixtures/recorded-responses.json` is now real model output; the old hand-made file is frozen at `tests/data/handmade-responses.json` (autouse fixture in `tests/conftest.py`). **93 tests pass.**
 
 Three bugs the first live run exposed (the SDK path had never run): (1) our PreToolUse hook denied the SDK's own `StructuredOutput` tool because it was not on an agent's allow-list — now exempt, with a test; (2) turn limits too tight for the structured-output turn (orchestrator 3→5, others → 8); (3) `parse_json` now reads the last text block and the first JSON object. Also fixed: the report said "not measured live" whenever any lead made no model call (duplicates); it now follows the caller. Empty `NAME=` lines in `.env` override defaults (`G0_RUN_CAP_USD=` crashes) — delete unused lines.

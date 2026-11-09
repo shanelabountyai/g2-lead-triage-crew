@@ -73,6 +73,35 @@ def cmd_eval(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_live(args: argparse.Namespace) -> int:
+    """H4 without the webhook: run the crew on contacts already in HubSpot, same code path as the webhook's `process`.
+    Notes land on synthetic @example.com contacts only (assert_synthetic in the client); nothing is sent."""
+    hubspot = client_from_env()
+    if hubspot.name != "real":
+        print("triage live: HUBSPOT_PRIVATE_APP_TOKEN is not set; refusing to run against the fake", file=sys.stderr)
+        return 2
+    ids = args.ids or [r["id"] for r in json.loads((FIXTURES_DIR / "hubspot-batch-result.json").read_text(encoding="utf-8"))["results"]]
+    crew = _crew(args, hubspot=hubspot)
+
+    async def go() -> int:
+        bad = 0
+        for cid in ids:
+            c = hubspot.get_contact(cid)
+            if c is None or crew.over_cap:
+                print(f"  {cid}: {'unknown contact' if c is None else 'over cap'}"); bad += 1; continue
+            r = await crew.run_lead(c.as_lead())
+            print(f"  {cid} {c.properties.get('email')}: band={r.band} score={r.score} note={r.note_id} draft={r.draft_note_id}")
+        return bad
+
+    bad = asyncio.run(go())
+    out = Path(args.out) / crew.run_id
+    out.mkdir(parents=True, exist_ok=True)
+    crew.write_run_log(out / "run-log.json")
+    cost, calls = crew.run_cost()
+    print(f"run {crew.run_id}: {len(ids) - bad}/{len(ids)} contacts triaged, cost ${cost:.4f}, blocked attempts {len(crew.blocked)}, layer calls {calls}; wrote {out}/run-log.json")
+    return 1 if bad else 0
+
+
 def hubspot_label(hubspot: HubSpotClient) -> str:
     return "real (writes: notes on synthetic @example.com contacts only, D-7)" if hubspot.name == "real" else "fake (seeded from fixtures)"
 
@@ -168,6 +197,12 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--judge", choices=["deterministic", "claude"], default="deterministic")
     p.add_argument("--public-url", default=None, help="the URL HubSpot signs against when behind a tunnel (for the v3 signature)")
     p.set_defaults(fn=cmd_serve)
+
+    p = sub.add_parser("live", help="H4 without the webhook: triage contacts already in HubSpot and write notes (synthetic contacts only)")
+    p.add_argument("--judge", choices=["deterministic", "claude"], default="deterministic")
+    p.add_argument("--out", default=str(REPO_DIR / "out"))
+    p.add_argument("ids", nargs="*", help="HubSpot contact ids (default: those in fixtures/hubspot-batch-result.json)")
+    p.set_defaults(fn=cmd_live)
 
     p = sub.add_parser("replay", help="post the fixture leads as contact.creation events to a running server")
     p.add_argument("--url", default="http://127.0.0.1:8042")

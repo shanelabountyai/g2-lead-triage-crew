@@ -39,6 +39,12 @@ def _norm(s: str | None) -> str:
     return re.sub(r"[^a-z0-9]+", " ", (s or "").lower()).strip()
 
 
+def _age(c: "Contact") -> tuple[str, int, str]:
+    """Sort key for "older": createdate, then HubSpot's numeric id. HubSpot ignores a supplied createdate and stamps a whole
+    batch with one timestamp (seen live, 2026-11-09), so equal createdates fall back to the id, which only ever grows."""
+    return (c.created_at, int(c.id) if c.id.isdigit() else 0, c.id)
+
+
 def find_duplicate(hubspot: HubSpotClient, lead: Lead) -> Contact | None:
     """The oldest *older* contact that is the same person (D-14), or None."""
     p = lead.properties
@@ -50,11 +56,11 @@ def find_duplicate(hubspot: HubSpotClient, lead: Lead) -> Contact | None:
     if p.firstname and p.lastname and p.company:
         for c in hubspot.find_contacts(firstname=p.firstname, lastname=p.lastname, company=p.company):
             candidates[c.id] = c
-    older = [c for c in candidates.values() if c.id != lead.id and c.created_at < lead.created_at and (
+    older = [c for c in candidates.values() if c.id != lead.id and _age(c) < _age(lead) and (
         canonical_email(c.email) == mine
         or (_norm(c.properties.get("firstname")) == _norm(p.firstname) and _norm(c.properties.get("lastname")) == _norm(p.lastname)
             and _norm(c.properties.get("company")) == _norm(p.company) and _norm(p.company) != "")
     )]
     if not older:
         return None
-    return sorted(older, key=lambda c: c.created_at)[0]
+    return sorted(older, key=_age)[0]
