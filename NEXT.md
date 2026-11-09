@@ -4,7 +4,7 @@ State (2026-11-09): **H2 done — first live run.** 20 leads, band accuracy **20
 
 Three bugs the first live run exposed (the SDK path had never run): (1) our PreToolUse hook denied the SDK's own `StructuredOutput` tool because it was not on an agent's allow-list — now exempt, with a test; (2) turn limits too tight for the structured-output turn (orchestrator 3→5, others → 8); (3) `parse_json` now reads the last text block and the first JSON object. Also fixed: the report said "not measured live" whenever any lead made no model call (duplicates); it now follows the caller. Empty `NAME=` lines in `.env` override defaults (`G0_RUN_CAP_USD=` crashes) — delete unused lines.
 
-Remaining hand steps: H1 review PR, H3/H4 HubSpot load and live write-back, H5 G2·B (n8n), H6 two decisions. Strike H2 below.
+Remaining hand steps: H1 review PR, H3/H4 HubSpot load and live write-back, H5 G2·B (n8n), H6 decided (D-24 synthetic-only Enricher, D-25 `rubric.register` deferred to G0·M). H3 batch generated at `fixtures/hubspot-batch-create.json` (gitignored): run the curl printed by `uv run triage hubspot-load` with your token, then note the contact ids. Strike H2 and H6 below.
 
 ---
 
