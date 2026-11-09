@@ -114,3 +114,47 @@ def test_leads_are_the_webhook_contacts():
     # the fake is seeded with the fixture leads, so a replayed objectId resolves (D-18)
     crew = Crew.for_fixtures(run_id="x")
     assert {lead.id for lead in load_leads()} == set(crew.hubspot.contacts)
+
+
+# -- review fix 1 (D-20): `serve` builds the client the banner reports ------------------------------
+
+
+def _serve_args(**kw):
+    base = {"host": "127.0.0.1", "port": 8042, "judge": "deterministic", "public_url": None, "record": False}
+    base.update(kw)
+    return type("A", (), base)()
+
+
+def test_serve_uses_the_fake_without_a_token_and_says_so():
+    app, banner = cli.serve_app(_serve_args())
+    assert "HubSpot client: fake (seeded from fixtures)" in banner
+    from starlette.testclient import TestClient
+
+    with TestClient(app) as c:
+        assert c.get("/health").json()["hubspot"] == "fake"
+    assert app.state.crew.hubspot.name == "fake" and "hs-1001" in app.state.crew.hubspot.contacts
+
+
+def test_serve_uses_the_real_client_when_a_token_is_set(monkeypatch):
+    from triage.hubspot import RealHubSpot
+    from triage.safety import SafetyViolation
+
+    monkeypatch.setenv("HUBSPOT_PRIVATE_APP_TOKEN", "pat-test-not-real")
+    monkeypatch.setenv("HUBSPOT_CLIENT_SECRET", "test-client-secret-not-real")  # fix 2: a real client needs a secret
+    app, banner = cli.serve_app(_serve_args())
+    assert "HubSpot client: real" in banner and app.state.crew is None  # the crew is built on the first request; none is made here
+    built = cli._crew(_serve_args(), hubspot=cli._hubspot_for_serve())  # the constructor makes no network call
+    assert isinstance(built.hubspot, RealHubSpot) and built.hubspot.name == "real"
+    # the synthetic-only write guard is still in force on the real client: a non-example.com contact is refused before any POST
+    calls = []
+
+    def handler(request):
+        calls.append((request.method, request.url.path))
+        if request.method == "GET":
+            return httpx.Response(200, json={"id": "77", "properties": {"email": "real.person@acme.com"}, "createdAt": "2026-11-01T00:00:00Z"})
+        return httpx.Response(201, json={"id": "n1"})
+
+    guarded = RealHubSpot(token="pat-test-not-real", transport=httpx.MockTransport(handler))
+    with pytest.raises(SafetyViolation):
+        guarded.create_note("77", "x")
+    assert [m for m, _ in calls] == ["GET"]

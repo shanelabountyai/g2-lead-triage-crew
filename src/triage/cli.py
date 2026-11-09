@@ -8,15 +8,25 @@ import json
 import os
 import sys
 from pathlib import Path
+from typing import Any
 
 from triage.crew import Crew
 from triage.evalreport import accuracy, build_report
+from triage.hubspot import FakeHubSpot, HubSpotClient, client_from_env
 from triage.layer import Layer
 from triage.llm import caller_from_env
 from triage.models import FIXTURES_DIR, REPO_DIR, load_leads
 
 
-def _crew(args: argparse.Namespace) -> Crew:
+def _hubspot_for_serve() -> HubSpotClient:
+    """The real client when HUBSPOT_PRIVATE_APP_TOKEN is set (its note writes stay behind `assert_synthetic`, D-7);
+    otherwise the fake, seeded from the fixture leads so a replayed objectId resolves (D-20)."""
+    if os.environ.get("HUBSPOT_PRIVATE_APP_TOKEN"):
+        return client_from_env()
+    return FakeHubSpot.seeded(list(load_leads()))
+
+
+def _crew(args: argparse.Namespace, hubspot: HubSpotClient | None = None) -> Crew:
     cap = float(os.environ.get("G0_RUN_CAP_USD", "10"))
     caller = caller_from_env(record=getattr(args, "record", False), cap_usd=cap)
     if caller.name == "recorded":
@@ -24,6 +34,8 @@ def _crew(args: argparse.Namespace) -> Crew:
     else:
         print(f"ANTHROPIC_API_KEY present: live model calls through the Claude Agent SDK, cap ${cap:.2f} (D-10)", file=sys.stderr)
     judge = getattr(args, "judge", "deterministic")
+    if hubspot is not None:
+        return Crew(layer=Layer(os.environ.get("G0_DB_PATH")), hubspot=hubspot, caller=caller, judge=judge)
     return Crew.for_fixtures(caller=caller, layer=Layer(os.environ.get("G0_DB_PATH")), judge=judge)
 
 
@@ -61,14 +73,26 @@ def cmd_eval(args: argparse.Namespace) -> int:
     return 0
 
 
+def hubspot_label(hubspot: HubSpotClient) -> str:
+    return "real (writes: notes on synthetic @example.com contacts only, D-7)" if hubspot.name == "real" else "fake (seeded from fixtures)"
+
+
+def serve_app(args: argparse.Namespace) -> tuple[Any, str]:
+    """Build the webhook app and the banner from what was actually built (D-20)."""
+    from triage.webhook import create_app
+
+    hubspot = _hubspot_for_serve()  # built here so the banner reports it; the crew (SQLite) is built in the server's loop
+    app = create_app(lambda: _crew(args, hubspot=hubspot), public_url=args.public_url)
+    banner = (f"serving on http://{args.host}:{args.port} — POST /hubspot/webhook, GET /health; HubSpot client: {hubspot_label(hubspot)}; "
+              f"signature check: {'on' if os.environ.get('HUBSPOT_CLIENT_SECRET') else 'off (no HUBSPOT_CLIENT_SECRET)'}")
+    return app, banner
+
+
 def cmd_serve(args: argparse.Namespace) -> int:
     import uvicorn
 
-    from triage.webhook import create_app
-
-    app = create_app(lambda: _crew(args), public_url=args.public_url)  # built on the first request, in the server's loop
-    print(f"serving on http://{args.host}:{args.port} — POST /hubspot/webhook, GET /health; HubSpot client: {'real' if os.environ.get('HUBSPOT_PRIVATE_APP_TOKEN') else 'fake (seeded from fixtures)'}; "
-          f"signature check: {'on' if os.environ.get('HUBSPOT_CLIENT_SECRET') else 'off (no HUBSPOT_CLIENT_SECRET)'}", file=sys.stderr)
+    app, banner = serve_app(args)
+    print(banner, file=sys.stderr)
     uvicorn.run(app, host=args.host, port=args.port, log_level="info")
     return 0
 
