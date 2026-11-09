@@ -8,8 +8,9 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-Band = Literal["good fit", "poor fit", "student", "vendor", "duplicate", "missing company info"]
-BANDS: tuple[Band, ...] = ("good fit", "poor fit", "student", "vendor", "duplicate", "missing company info")
+Band = Literal["good fit", "poor fit", "student", "vendor", "duplicate", "missing company info", "not qualified"]
+# "not qualified": the company is identified but the Qualifier was skipped (D-23). No fixture is labelled with it.
+BANDS: tuple[Band, ...] = ("good fit", "poor fit", "student", "vendor", "duplicate", "missing company info", "not qualified")
 
 Role = Literal["executive-sponsor", "pilot-lead", "team-member", "outside-advisor"]
 Relationship = Literal["buyer", "vendor", "student", "advisor"]

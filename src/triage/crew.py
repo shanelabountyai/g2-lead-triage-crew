@@ -112,7 +112,7 @@ class Crew:
             elif not p.call_qualifier:
                 self._skip(lead, "qualifier", f"orchestrator: {p.qualifier_reason}", decisions)
                 self._skip(lead, "drafter", "no qualification", decisions)
-                reasons.append(f"Orchestrator skipped the Qualifier: {p.qualifier_reason}")
+                reasons.append(f"Not qualified — qualifier skipped by the orchestrator: {p.qualifier_reason}")
             else:
                 self._called("qualifier", p.qualifier_reason, decisions)
                 qualification, call = await qualify(self, lead, enrichment)

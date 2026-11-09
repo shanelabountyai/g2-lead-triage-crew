@@ -9,7 +9,7 @@ def test_twenty_leads_cover_every_band():
     leads = load_leads()
     assert len(leads) == 20
     counts = Counter(lead.label.band for lead in leads)
-    assert set(counts) == set(BANDS)
+    assert set(counts) == set(BANDS) - {"not qualified"}  # D-23: a runtime band (Qualifier skipped by the plan), not a label
     assert counts["good fit"] == 8 and counts["poor fit"] == 4
     assert all(counts[b] == 2 for b in ("student", "vendor", "duplicate", "missing company info"))
 

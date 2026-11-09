@@ -154,3 +154,37 @@ async def test_over_cap_stops_before_the_next_model_call(layer, monkeypatch):
     with pytest.raises(OverCap):
         await crew.run_lead(leads[0])
     assert crew.hubspot.notes == []
+
+
+# -- review fix 4 (D-23): a skipped Qualifier with an identified company is "not qualified" ----------
+
+
+def test_band_not_qualified_only_when_the_company_is_identified():
+    from triage.bands import decide_band
+    from triage.models import Enrichment
+
+    known = Enrichment(company_identified=True)
+    assert decide_band(duplicate_of=None, enrichment=known, qualification=None) == "not qualified"
+    assert decide_band(duplicate_of=None, enrichment=Enrichment(company_identified=False), qualification=None) == "missing company info"
+    assert decide_band(duplicate_of=None, enrichment=None, qualification=None) == "missing company info"
+    assert decide_band(duplicate_of="hs-1", enrichment=known, qualification=None) == "duplicate"
+
+
+async def test_orchestrator_skipping_the_qualifier_gives_not_qualified_with_its_reason(layer, tmp_path):
+    doc = json.loads(RecordedCaller().path.read_text())
+    plan = doc["responses"]["orchestrator:hs-1001"]["response"]
+    plan["call_qualifier"] = False
+    plan["qualifier_reason"] = "synthetic test: plan says skip"
+    p = tmp_path / "skip-qualifier.json"
+    p.write_text(json.dumps(doc))
+    leads = load_leads()
+    crew = Crew.for_fixtures(layer=layer, run_id="g2c-skipq", leads=leads, caller=RecordedCaller(p))
+    r = await crew.run_lead(leads[0])
+    assert r.enrichment.company_identified and r.qualification is None and r.score is None
+    assert r.band == "not qualified"
+    assert "Not qualified — qualifier skipped by the orchestrator: synthetic test: plan says skip" in r.reasons
+    body = crew.hubspot.list_notes("hs-1001")[-1].body
+    assert "Band: not qualified" in body and "missing company info" not in body
+    assert [n.kind for n in crew.hubspot.list_notes("hs-1001")] == ["triage"]  # no draft without a qualification
+    row = crew.layer.db.conn.execute("SELECT note FROM run_log WHERE run_id='g2c-skipq' AND step='hs-1001:qualifier' AND status='skipped'").fetchone()
+    assert row["note"] == "orchestrator: synthetic test: plan says skip"

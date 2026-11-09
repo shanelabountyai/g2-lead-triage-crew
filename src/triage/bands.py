@@ -9,7 +9,10 @@ from triage.models import Band, Enrichment, Lead, Qualification
 
 
 def decide_band(*, duplicate_of: str | None, enrichment: Enrichment | None, qualification: Qualification | None) -> Band:
-    """Precedence: duplicate > student > vendor > missing company info > good fit > poor fit."""
+    """Precedence: duplicate > student > vendor > missing company info > not qualified > good fit > poor fit.
+
+    `missing company info` only when there is no identified company; a lead whose company *is* identified but whose
+    Qualifier was skipped is `not qualified` (D-23)."""
     if duplicate_of:
         return "duplicate"
     rel = qualification.profile.relationship if qualification else None
@@ -17,10 +20,10 @@ def decide_band(*, duplicate_of: str | None, enrichment: Enrichment | None, qual
         return "student"
     if rel == "vendor":
         return "vendor"
-    if enrichment is not None and not enrichment.company_identified:
+    if enrichment is None or not enrichment.company_identified:
         return "missing company info"
     if qualification is None:
-        return "missing company info"
+        return "not qualified"
     return "good fit" if qualification.passed else "poor fit"
 
 
