@@ -1,0 +1,246 @@
+{
+  "_about": "20 synthetic HubSpot leads for the Lead Triage Crew (D-9). Every person is invented; every email is on example.com (RFC 2606). `properties` are the HubSpot contact properties the Stalled-Pilot Diagnostic writes (email, firstname, company, li_tool_*; see li-lead-gen-tools src/lib/hubspot.ts) plus the standard properties HubSpot may already hold on a contact (lastname, jobtitle, industry, numberofemployees, website) and `message`, the free text from the booking form. `label` is the hand-labeled expected band: the eval set (PRD AC 5). Leads that may receive a draft reuse the emails of G0's seeded synthetic contacts so audience.consent can answer (D-9). Order matters for duplicates: the original is always earlier in the list and older in `created_at` (D-14).",
+  "bands": ["good fit", "poor fit", "student", "vendor", "duplicate", "missing company info"],
+  "leads": [
+    {
+      "id": "hs-1001",
+      "created_at": "2026-11-02T09:00:00Z",
+      "properties": {
+        "email": "ada.test01@example.com", "firstname": "Ada", "lastname": "Testperson",
+        "company": "Sample Co", "jobtitle": "VP Marketing", "industry": null, "numberofemployees": null, "website": null,
+        "li_tool_name": "stalled-pilot-diagnostic", "li_tool_role": "executive-sponsor", "li_tool_pilot_stage": "running-no-decision",
+        "li_tool_result": "people", "li_tool_people_gap": 7, "li_tool_process_gap": 4, "li_tool_technology_gap": 2, "li_tool_lead_grade": "hot",
+        "message": "I sponsor our content-generation pilot. It has been running since spring and nobody has decided whether to roll it out."
+      },
+      "label": {"band": "good fit", "why": "Executive sponsor of a running pilot with no decision; people gap 7; company in the directory; consented on email."}
+    },
+    {
+      "id": "hs-1002",
+      "created_at": "2026-11-02T09:30:00Z",
+      "properties": {
+        "email": "ben.test02@example.com", "firstname": "Ben", "lastname": "Testperson",
+        "company": "Placeholder Inc", "jobtitle": "Marketing Ops Manager", "industry": null, "numberofemployees": null, "website": null,
+        "li_tool_name": "stalled-pilot-diagnostic", "li_tool_role": "pilot-lead", "li_tool_pilot_stage": "finished-not-rolled-out",
+        "li_tool_result": "process", "li_tool_people_gap": 3, "li_tool_process_gap": 6, "li_tool_technology_gap": 4, "li_tool_lead_grade": "hot",
+        "message": "I led the pilot. It finished in August and the deck has been sitting with leadership since."
+      },
+      "label": {"band": "good fit", "why": "Pilot lead; finished-not-rolled-out; process gap 6; consented on email."}
+    },
+    {
+      "id": "hs-1003",
+      "created_at": "2026-11-02T10:00:00Z",
+      "properties": {
+        "email": "cleo.test03@example.com", "firstname": "Cleo", "lastname": "Testperson",
+        "company": "Testdata Ltd", "jobtitle": "Head of Demand Gen", "industry": null, "numberofemployees": null, "website": null,
+        "li_tool_name": "stalled-pilot-diagnostic", "li_tool_role": "executive-sponsor", "li_tool_pilot_stage": "rolled-out-low-use",
+        "li_tool_result": "people", "li_tool_people_gap": 8, "li_tool_process_gap": 5, "li_tool_technology_gap": 3, "li_tool_lead_grade": "hot",
+        "message": "We rolled out AI lead scoring to the whole team and about four people use it."
+      },
+      "label": {"band": "good fit", "why": "Sponsor, rolled-out-low-use, people gap 8. G0 contact ct-003 has email consent false: good fit, but no draft (D-15)."}
+    },
+    {
+      "id": "hs-1004",
+      "created_at": "2026-11-02T10:30:00Z",
+      "properties": {
+        "email": "dev.test04@example.com", "firstname": "Dev", "lastname": "Testperson",
+        "company": "Fixture Labs", "jobtitle": "CMO", "industry": null, "numberofemployees": null, "website": null,
+        "li_tool_name": "stalled-pilot-diagnostic", "li_tool_role": "executive-sponsor", "li_tool_pilot_stage": "planned",
+        "li_tool_result": "none", "li_tool_people_gap": 2, "li_tool_process_gap": 1, "li_tool_technology_gap": 2, "li_tool_lead_grade": "cool",
+        "message": "Curious what the tool says. We have not started anything yet."
+      },
+      "label": {"band": "poor fit", "why": "Sponsor at a real company, but the pilot is only planned and every gap is low: nothing is stalled."}
+    },
+    {
+      "id": "hs-1005",
+      "created_at": "2026-11-02T11:00:00Z",
+      "properties": {
+        "email": "esme.test05@example.com", "firstname": "Esme", "lastname": "Testperson",
+        "company": "Synthetic Systems", "jobtitle": "Copywriter", "industry": null, "numberofemployees": null, "website": null,
+        "li_tool_name": "stalled-pilot-diagnostic", "li_tool_role": "team-member", "li_tool_pilot_stage": "running-no-decision",
+        "li_tool_result": "people", "li_tool_people_gap": 7, "li_tool_process_gap": 3, "li_tool_technology_gap": 2, "li_tool_lead_grade": "warm",
+        "message": "I use the tool every day and wanted to see where it is stuck."
+      },
+      "label": {"band": "poor fit", "why": "Team member, not a decision role: the pilot is stalled but this person cannot buy."}
+    },
+    {
+      "id": "hs-1006",
+      "created_at": "2026-11-02T11:30:00Z",
+      "properties": {
+        "email": "finn.test06@example.com", "firstname": "Finn", "lastname": "Testperson",
+        "company": "Dummy Dynamics", "jobtitle": "Revenue Ops Director", "industry": null, "numberofemployees": null, "website": null,
+        "li_tool_name": "stalled-pilot-diagnostic", "li_tool_role": "pilot-lead", "li_tool_pilot_stage": "running-no-decision",
+        "li_tool_result": "technology", "li_tool_people_gap": 4, "li_tool_process_gap": 5, "li_tool_technology_gap": 6, "li_tool_lead_grade": "hot",
+        "message": "Quote drafting pilot. The output needs heavy editing and the data access is manual, so it just keeps running."
+      },
+      "label": {"band": "good fit", "why": "Pilot lead; running-no-decision; technology gap 6; consented on email."}
+    },
+    {
+      "id": "hs-1007",
+      "created_at": "2026-11-02T12:00:00Z",
+      "properties": {
+        "email": "gia.test07@example.com", "firstname": "Gia", "lastname": "Testperson",
+        "company": "Mock Industries", "jobtitle": "Director of Marketing", "industry": null, "numberofemployees": null, "website": null,
+        "li_tool_name": "stalled-pilot-diagnostic", "li_tool_role": "executive-sponsor", "li_tool_pilot_stage": "rolled-out-low-use",
+        "li_tool_result": "people", "li_tool_people_gap": 9, "li_tool_process_gap": 4, "li_tool_technology_gap": 3, "li_tool_lead_grade": "hot",
+        "message": "We rolled out an assistant to the campaign team. Most people went back to the old way within a month."
+      },
+      "label": {"band": "good fit", "why": "Sponsor, rolled-out-low-use, people gap 9. G0 contact ct-007 is do-not-contact: good fit, but no draft (D-15)."}
+    },
+    {
+      "id": "hs-1008",
+      "created_at": "2026-11-02T12:30:00Z",
+      "properties": {
+        "email": "hal.test08@example.com", "firstname": "Hal", "lastname": "Testperson",
+        "company": "Demo Holdings", "jobtitle": "Marketing PMO Lead", "industry": null, "numberofemployees": null, "website": null,
+        "li_tool_name": "stalled-pilot-diagnostic", "li_tool_role": "pilot-lead", "li_tool_pilot_stage": "shut-down",
+        "li_tool_result": "process", "li_tool_people_gap": 5, "li_tool_process_gap": 8, "li_tool_technology_gap": 4, "li_tool_lead_grade": "warm",
+        "message": "We shut the pilot down in September. I want to understand what we should have done before we try again."
+      },
+      "label": {"band": "good fit", "why": "Pilot lead with a shut-down pilot and a process gap of 8: the stage is not one of the three stalled stages, but everything else fits; consented on email."}
+    },
+    {
+      "id": "hs-1009",
+      "created_at": "2026-11-02T13:00:00Z",
+      "properties": {
+        "email": "ivy.test09@example.com", "firstname": "Ivy", "lastname": "Testperson",
+        "company": "Nonesuch Partners", "jobtitle": "Content Ops Manager", "industry": null, "numberofemployees": null, "website": null,
+        "li_tool_name": "stalled-pilot-diagnostic", "li_tool_role": null, "li_tool_pilot_stage": "planned",
+        "li_tool_result": "none", "li_tool_people_gap": 1, "li_tool_process_gap": 1, "li_tool_technology_gap": 0, "li_tool_lead_grade": "cool",
+        "message": "Thinking about trying an AI tool for our newsletter next year."
+      },
+      "label": {"band": "poor fit", "why": "Role left blank; a 28-person consultancy with nothing started and no gap."}
+    },
+    {
+      "id": "hs-1010",
+      "created_at": "2026-11-02T13:30:00Z",
+      "properties": {
+        "email": "jun.test10@example.com", "firstname": "Jun", "lastname": "Testperson",
+        "company": "", "jobtitle": "VP Marketing Operations", "industry": null, "numberofemployees": null, "website": null,
+        "li_tool_name": "stalled-pilot-diagnostic", "li_tool_role": "executive-sponsor", "li_tool_pilot_stage": "running-no-decision",
+        "li_tool_result": "process", "li_tool_people_gap": 4, "li_tool_process_gap": 7, "li_tool_technology_gap": 3, "li_tool_lead_grade": "hot",
+        "message": "Our personalization pilot has no stop criteria and no budget owner."
+      },
+      "label": {"band": "missing company info", "why": "Company field empty and the email domain is generic: the Enricher cannot identify the company, so there is nothing to score."}
+    },
+    {
+      "id": "hs-1011",
+      "created_at": "2026-11-02T14:00:00Z",
+      "properties": {
+        "email": "kai.test11@example.com", "firstname": "Kai", "lastname": "Testperson",
+        "company": "self", "jobtitle": "Director", "industry": null, "numberofemployees": null, "website": null,
+        "li_tool_name": "stalled-pilot-diagnostic", "li_tool_role": "pilot-lead", "li_tool_pilot_stage": "running-no-decision",
+        "li_tool_result": "people", "li_tool_people_gap": 6, "li_tool_process_gap": 4, "li_tool_technology_gap": 2, "li_tool_lead_grade": "hot",
+        "message": "Running a pilot, happy to talk."
+      },
+      "label": {"band": "missing company info", "why": "Company given as 'self', which the directory cannot resolve; title alone says nothing about the organization."}
+    },
+    {
+      "id": "hs-1012",
+      "created_at": "2026-11-02T14:30:00Z",
+      "properties": {
+        "email": "lou.test12@example.com", "firstname": "Lou", "lastname": "Testperson",
+        "company": "Placeholder Inc", "jobtitle": "Fractional Marketing Advisor", "industry": null, "numberofemployees": null, "website": null,
+        "li_tool_name": "stalled-pilot-diagnostic", "li_tool_role": "outside-advisor", "li_tool_pilot_stage": "running-no-decision",
+        "li_tool_result": "process", "li_tool_people_gap": 3, "li_tool_process_gap": 6, "li_tool_technology_gap": 3, "li_tool_lead_grade": "warm",
+        "message": "I advise Placeholder's marketing team part-time and ran the diagnostic on their behalf."
+      },
+      "label": {"band": "poor fit", "why": "Outside advisor, not the buyer: the company fits but this person does not sponsor the pilot."}
+    },
+    {
+      "id": "hs-1013",
+      "created_at": "2026-11-02T15:00:00Z",
+      "properties": {
+        "email": "mae.test13@example.com", "firstname": "Mae", "lastname": "Testperson",
+        "company": "Testdata Ltd", "jobtitle": "Chief Marketing Officer", "industry": "Financial services", "numberofemployees": 2300, "website": "https://testdata.example.com",
+        "li_tool_name": "stalled-pilot-diagnostic", "li_tool_role": "executive-sponsor", "li_tool_pilot_stage": "rolled-out-low-use",
+        "li_tool_result": "people", "li_tool_people_gap": 7, "li_tool_process_gap": 5, "li_tool_technology_gap": 4, "li_tool_lead_grade": "hot",
+        "message": "Sponsor of the lead-scoring rollout. Adoption is the problem, not the model."
+      },
+      "label": {"band": "good fit", "why": "Sponsor; the contact already carries industry, size and website, so the Enricher is skipped (D-19); consented on email."}
+    },
+    {
+      "id": "hs-1014",
+      "created_at": "2026-11-02T15:30:00Z",
+      "properties": {
+        "email": "sam.studentperson@example.com", "firstname": "Sam", "lastname": "Studentperson",
+        "company": "Example State University", "jobtitle": "MBA candidate", "industry": null, "numberofemployees": null, "website": null,
+        "li_tool_name": "stalled-pilot-diagnostic", "li_tool_role": "team-member", "li_tool_pilot_stage": "running-no-decision",
+        "li_tool_result": "process", "li_tool_people_gap": 4, "li_tool_process_gap": 6, "li_tool_technology_gap": 2, "li_tool_lead_grade": "warm",
+        "message": "I am writing my thesis on why AI pilots stall and used your tool as a case example."
+      },
+      "label": {"band": "student", "why": "MBA candidate at a university doing thesis research."}
+    },
+    {
+      "id": "hs-1015",
+      "created_at": "2026-11-02T16:00:00Z",
+      "properties": {
+        "email": "pat.gradperson@example.com", "firstname": "Pat", "lastname": "Gradperson",
+        "company": "Fixture Labs", "jobtitle": "Intern, Innovation Lab", "industry": null, "numberofemployees": null, "website": null,
+        "li_tool_name": "stalled-pilot-diagnostic", "li_tool_role": "team-member", "li_tool_pilot_stage": "running-no-decision",
+        "li_tool_result": "people", "li_tool_people_gap": 6, "li_tool_process_gap": 3, "li_tool_technology_gap": 3, "li_tool_lead_grade": "warm",
+        "message": "Student intern here collecting examples for a class project on AI adoption."
+      },
+      "label": {"band": "student", "why": "Student intern collecting class-project material; the company is real but the person is not a buyer."}
+    },
+    {
+      "id": "hs-1016",
+      "created_at": "2026-11-02T16:30:00Z",
+      "properties": {
+        "email": "vic.vendorperson@example.com", "firstname": "Vic", "lastname": "Vendorperson",
+        "company": "Mock AI Consulting", "jobtitle": "Founder & CEO", "industry": null, "numberofemployees": null, "website": null,
+        "li_tool_name": "stalled-pilot-diagnostic", "li_tool_role": "outside-advisor", "li_tool_pilot_stage": "running-no-decision",
+        "li_tool_result": "people", "li_tool_people_gap": 6, "li_tool_process_gap": 6, "li_tool_technology_gap": 6, "li_tool_lead_grade": "warm",
+        "message": "We help companies rescue stalled pilots and would love to partner with Lab Intelligence on referrals."
+      },
+      "label": {"band": "vendor", "why": "Founder of an AI consultancy pitching a partnership."}
+    },
+    {
+      "id": "hs-1017",
+      "created_at": "2026-11-02T17:00:00Z",
+      "properties": {
+        "email": "sal.sellerperson@example.com", "firstname": "Sal", "lastname": "Sellerperson",
+        "company": "Dummy Data Platforms Inc", "jobtitle": "Account Executive", "industry": null, "numberofemployees": null, "website": null,
+        "li_tool_name": "stalled-pilot-diagnostic", "li_tool_role": "executive-sponsor", "li_tool_pilot_stage": "finished-not-rolled-out",
+        "li_tool_result": "technology", "li_tool_people_gap": 2, "li_tool_process_gap": 3, "li_tool_technology_gap": 8, "li_tool_lead_grade": "hot",
+        "message": "Let me show you how our data platform fixes exactly the technology gaps your tool found. 15 minutes?"
+      },
+      "label": {"band": "vendor", "why": "Account executive at a data-platform vendor pitching a demo; picked 'executive sponsor' on the form."}
+    },
+    {
+      "id": "hs-1018",
+      "created_at": "2026-11-03T09:00:00Z",
+      "properties": {
+        "email": "ada.test01+again@example.com", "firstname": "Ada", "lastname": "Testperson",
+        "company": "Sample Co", "jobtitle": "VP Marketing", "industry": null, "numberofemployees": null, "website": null,
+        "li_tool_name": "stalled-pilot-diagnostic", "li_tool_role": "executive-sponsor", "li_tool_pilot_stage": "running-no-decision",
+        "li_tool_result": "people", "li_tool_people_gap": 7, "li_tool_process_gap": 4, "li_tool_technology_gap": 2, "li_tool_lead_grade": "hot",
+        "message": "Ran it again from my phone."
+      },
+      "label": {"band": "duplicate", "why": "Same person as hs-1001: same email with a +tag, same name and company."}
+    },
+    {
+      "id": "hs-1019",
+      "created_at": "2026-11-03T09:30:00Z",
+      "properties": {
+        "email": "tam.test20@example.com", "firstname": "Tam", "lastname": "Testperson",
+        "company": "Example Corp", "jobtitle": "VP Marketing Operations", "industry": null, "numberofemployees": null, "website": null,
+        "li_tool_name": "stalled-pilot-diagnostic", "li_tool_role": "executive-sponsor", "li_tool_pilot_stage": "running-no-decision",
+        "li_tool_result": "process", "li_tool_people_gap": 5, "li_tool_process_gap": 9, "li_tool_technology_gap": 4, "li_tool_lead_grade": "hot",
+        "message": "Personalization pilot, running a year, no stop criteria. I own the budget."
+      },
+      "label": {"band": "good fit", "why": "Sponsor who owns the budget; running-no-decision; process gap 9; consented on email."}
+    },
+    {
+      "id": "hs-1020",
+      "created_at": "2026-11-03T10:00:00Z",
+      "properties": {
+        "email": "tam.testperson@example.com", "firstname": "Tam", "lastname": "Testperson",
+        "company": "Example Corp", "jobtitle": "VP Marketing Operations", "industry": null, "numberofemployees": null, "website": null,
+        "li_tool_name": "stalled-pilot-diagnostic", "li_tool_role": "executive-sponsor", "li_tool_pilot_stage": "running-no-decision",
+        "li_tool_result": "process", "li_tool_people_gap": 5, "li_tool_process_gap": 9, "li_tool_technology_gap": 4, "li_tool_lead_grade": "hot",
+        "message": "Submitted with my other address so my assistant gets the report too."
+      },
+      "label": {"band": "duplicate", "why": "Same person as hs-1019: different email, same first and last name and company."}
+    }
+  ]
+}

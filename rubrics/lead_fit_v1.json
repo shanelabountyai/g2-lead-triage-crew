@@ -1,0 +1,19 @@
+{
+  "_about": "Qualifier rubric for the Lead Triage Crew (G2 D-2, D-5, D-13). It lives in this repo because G0's evaluation v1 contract has no rubric-registration tool; at start-up it is loaded into the layer's rubric store through G0's own seed loader under the namespaced id g2_lead_fit_v1, and every score is produced by G0's evaluation capability (DeterministicJudge, or ClaudeJudge with a key). The item scored is the Qualifier's LeadProfile as a flat object: role, relationship, company, pilot_stage, gap_at_least_6 ('yes'/'no'), size_band. Checks use G0's deterministic vocabulary (field_in, field_nonempty) so the rule engine and a model judge agree on what good looks like. The buyer definition is li-lead-gen-tools: docs/prds/07-decisions.md D-1 ('any leader sponsoring an AI pilot'), src/tools/shared.ts DECISION_ROLES, src/tools/stalled-pilot-diagnostic.ts leadGrade.conditions.",
+  "rubrics": [
+    {
+      "id": "g2_lead_fit_v1",
+      "title": "Lead fit against the Stalled-Pilot Diagnostic buyer (an AI pilot sponsor)",
+      "source": "li-lead-gen-tools D-1 + shared.ts DECISION_ROLES + stalled-pilot-diagnostic.ts leadGrade; G2 D-5",
+      "pass_threshold": 0.8,
+      "criteria": [
+        {"id": "decision_role", "weight": 3, "required": true, "description": "The person is an executive sponsor or the pilot lead (li-lead-gen-tools DECISION_ROLES); a team member or outside advisor cannot buy.", "check": "field_in:role:executive-sponsor,pilot-lead"},
+        {"id": "buyer_not_vendor_or_student", "weight": 3, "required": true, "description": "The person is a buyer at an operating company: not a vendor selling into Lab Intelligence's audience, not a student or researcher, not an outside advisor acting for someone else.", "check": "field_in:relationship:buyer"},
+        {"id": "company_identified", "weight": 2, "required": true, "description": "The company is identified: a directory record was found, or the contact already carried a complete profile.", "check": "field_nonempty:company"},
+        {"id": "stalled_stage", "weight": 2, "required": false, "description": "The pilot is in one of the stalled stages the diagnostic grades as hot: running with no decision, finished but not rolled out, or rolled out with low use.", "check": "field_in:pilot_stage:running-no-decision,finished-not-rolled-out,rolled-out-low-use"},
+        {"id": "gap_at_least_6", "weight": 1, "required": false, "description": "At least one diagnostic category (people, process, technology) has a gap of 6 or more out of 9.", "check": "field_in:gap_at_least_6:yes"},
+        {"id": "company_size", "weight": 1, "required": false, "description": "The company has 51 or more employees, so a pilot has an organization around it.", "check": "field_in:size_band:51-200,201-1000,1001-5000,5000+"}
+      ]
+    }
+  ]
+}
