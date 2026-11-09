@@ -2,7 +2,10 @@
 
 HubSpot posts a JSON array of events; each carries `objectId` (the contact id), `subscriptionType`, `portalId`,
 `occurredAt`, `eventId`. The app fetches the contact through the HubSpot interface (the fake in local replay, the
-real client when a token is set), runs the crew, and answers with what it did. With `HUBSPOT_CLIENT_SECRET` set the
+real client when a token is set) and runs the crew. It acknowledges at once (200, status `queued`) and triages in a
+background task, so HubSpot's timeout never triggers a retry; an event already seen (same `eventId`, or same contact and
+subscription type) is answered 200 `duplicate_event` and not rerun (D-22). `?wait=true` (local replay) triages inline
+and answers with the outcome. With `HUBSPOT_CLIENT_SECRET` set the
 v3 signature is verified. Unsigned mode is allowed only in fixture/fake mode (fake HubSpot and the recorded model): with a
 real HubSpot client or a live model key and no secret the app refuses to start, and a request that reaches a live crew
 without a secret is 401 (D-21).
@@ -10,6 +13,7 @@ without a secret is 401 (D-21).
 
 from __future__ import annotations
 
+import asyncio
 import base64
 import hashlib
 import hmac
@@ -18,7 +22,7 @@ import time
 from collections.abc import Callable
 from typing import Any
 
-from fastapi import FastAPI, Request, Response
+from fastapi import BackgroundTasks, FastAPI, Request, Response
 from fastapi.responses import JSONResponse
 
 from triage.crew import Crew
@@ -78,6 +82,8 @@ def create_app(crew: Crew | Callable[[], Crew], *, client_secret: str | None = N
                                  "refusing to serve unsigned webhooks (unsigned mode is for fixture/fake mode only, D-21)")
     app = FastAPI(title="Lead Triage Crew (G2·C) webhook", version="0.1.0")
     app.state.crew = crew if isinstance(crew, Crew) else None
+    app.state.events = {}  # idempotency store (D-22): event key -> outcome record; in memory, lost on restart
+    app.state.lock = asyncio.Lock()
     factory = None if isinstance(crew, Crew) else crew
 
     def get_crew() -> Crew:
@@ -92,10 +98,11 @@ def create_app(crew: Crew | Callable[[], Crew], *, client_secret: str | None = N
         cost, calls = crew.run_cost()
         return {"status": h.status, "layer": {"db_path": h.db_path, "rubrics": h.rubrics, "contracts": h.contracts}, "run_id": crew.run_id,
                 "hubspot": crew.hubspot.name, "caller": crew.caller.name, "measured": crew.caller.measured, "run_cost_usd": cost, "layer_calls": calls,
-                "signature_check": bool(secret), "leads_processed": len(crew.results), "blocked_attempts": len(crew.blocked)}
+                "signature_check": bool(secret), "leads_processed": len(crew.results), "blocked_attempts": len(crew.blocked),
+                "events_seen": len({id(v) for v in app.state.events.values()})}
 
     @app.post("/hubspot/webhook")
-    async def webhook(request: Request, response: Response) -> Any:
+    async def webhook(request: Request, response: Response, background: BackgroundTasks) -> Any:
         crew = get_crew()
         body = await request.body()
         if secret:
@@ -117,7 +124,9 @@ def create_app(crew: Crew | Callable[[], Crew], *, client_secret: str | None = N
             events = [events]
         if not isinstance(events, list):
             return JSONResponse({"error": "body must be an array of events"}, status_code=400)
+        wait = request.query_params.get("wait", "").lower() in ("1", "true", "yes")
         processed: list[dict[str, Any]] = []
+        queued: list[tuple[str, dict[str, Any]]] = []
         for ev in events:
             if not isinstance(ev, dict):
                 continue
@@ -126,24 +135,55 @@ def create_app(crew: Crew | Callable[[], Crew], *, client_secret: str | None = N
             if sub != "contact.creation":
                 processed.append({"objectId": oid, "subscriptionType": sub, "status": "ignored"})
                 continue
+            keys = event_keys(ev)
+            seen = next((app.state.events[k] for k in keys if k in app.state.events), None)
+            if seen is not None:  # a HubSpot retry (same eventId) or a second event for the same contact: no rerun, no new note
+                processed.append({"objectId": oid, "eventId": ev.get("eventId"), "status": "duplicate_event", "first": dict(seen)})
+                continue
+            record: dict[str, Any] = {"objectId": oid, "eventId": ev.get("eventId"), "status": "queued"}
+            for k in keys:  # claimed before processing starts, so a retry that lands mid-run is a duplicate too
+                app.state.events[k] = record
+            queued.append((oid, record))
+            if wait:
+                processed.append(await process(crew, oid, record))
+            else:
+                processed.append(dict(record))
+        if not wait:
+            for oid, record in queued:  # runs after the response is sent
+                background.add_task(process, crew, oid, record)
+        return {"run_id": crew.run_id, "processed": processed}
+
+    async def process(crew: Crew, oid: str, record: dict[str, Any]) -> dict[str, Any]:
+        """Run one contact through the crew; the outcome is written into the idempotency record."""
+        async with app.state.lock:  # one lead at a time: the crew and its SQLite layer are not built for concurrent leads
+            record["status"] = "running"
             contact = crew.hubspot.get_contact(oid)
             if contact is None:
-                processed.append({"objectId": oid, "status": "unknown_contact"})
-                continue
+                record.update(status="unknown_contact")
+                return dict(record)
             if crew.over_cap:
-                processed.append({"objectId": oid, "status": "over_cap"})
-                continue
+                record.update(status="over_cap")
+                return dict(record)
             try:
                 r = await crew.run_lead(contact.as_lead())
             except Exception as e:  # the crew already logged; the webhook must answer HubSpot
-                processed.append({"objectId": oid, "status": "error", "error": type(e).__name__, "detail": str(e)[:200]})
-                continue
-            processed.append({"objectId": oid, "status": "triaged", "band": r.band, "score": r.score, "note_id": r.note_id,
-                              "draft_note_id": r.draft_note_id, "workers_called": [d.worker for d in r.decisions if d.called],
-                              "blocked_attempts": r.blocked_attempts})
-        return {"run_id": crew.run_id, "processed": processed}
+                record.update(status="error", error=type(e).__name__, detail=str(e)[:200])
+                return dict(record)
+            record.update(status="triaged", band=r.band, score=r.score, note_id=r.note_id, draft_note_id=r.draft_note_id,
+                          workers_called=[d.worker for d in r.decisions if d.called], blocked_attempts=r.blocked_attempts)
+            return dict(record)
 
     return app
+
+
+def event_keys(ev: dict[str, Any]) -> list[str]:
+    """Idempotency keys for one event (D-22): HubSpot's `eventId` (stable across its retries) and, as a fallback that also
+    catches a second event for the same contact, `<objectId>:<subscriptionType>`."""
+    keys = []
+    if ev.get("eventId") not in (None, ""):
+        keys.append(f"event:{ev['eventId']}")
+    keys.append(f"object:{ev.get('objectId')}:{ev.get('subscriptionType')}")
+    return keys
 
 
 def event_for(contact_id: str, portal_id: int = 0, occurred_at_ms: int | None = None) -> dict[str, Any]:

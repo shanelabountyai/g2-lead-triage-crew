@@ -25,7 +25,7 @@ async def _client(app):
 async def test_contact_creation_event_runs_the_crew_and_writes_the_note(crew):
     app = create_app(crew, client_secret=None)
     async with await _client(app) as c:
-        r = await c.post("/hubspot/webhook", json=[event_for("hs-1001"), event_for("hs-1004")])
+        r = await c.post("/hubspot/webhook?wait=true", json=[event_for("hs-1001"), event_for("hs-1004")])
         assert r.status_code == 200 and r.headers["X-Triage-Signature"].startswith("skipped")
         body = r.json()
         assert body["run_id"] == "g2c-web"
@@ -39,7 +39,7 @@ async def test_contact_creation_event_runs_the_crew_and_writes_the_note(crew):
 async def test_other_events_and_unknown_contacts_are_acknowledged_not_processed(crew):
     app = create_app(crew, client_secret=None)
     async with await _client(app) as c:
-        r = await c.post("/hubspot/webhook", json=[{"subscriptionType": "deal.propertyChange", "objectId": 5}, event_for("hs-9999"), {"not": "an event"}])
+        r = await c.post("/hubspot/webhook?wait=true", json=[{"subscriptionType": "deal.propertyChange", "objectId": 5}, event_for("hs-9999"), {"not": "an event"}])
         assert r.status_code == 200
         assert [p["status"] for p in r.json()["processed"]] == ["ignored", "unknown_contact", "ignored"]
         assert crew.hubspot.notes == []
@@ -58,7 +58,7 @@ async def test_signature_is_verified_when_a_secret_is_set(crew):
         assert bad.status_code == 401 and "mismatch" in bad.json()["error"]
         none = await c.post("/hubspot/webhook", content=body, headers={"content-type": "application/json"})
         assert none.status_code == 401
-        good = await c.post("/hubspot/webhook", content=body, headers={"content-type": "application/json", TIMESTAMP_HEADER: str(ts), SIGNATURE_HEADER: sig})
+        good = await c.post("/hubspot/webhook?wait=true", content=body, headers={"content-type": "application/json", TIMESTAMP_HEADER: str(ts), SIGNATURE_HEADER: sig})
         assert good.status_code == 200 and good.headers["X-Triage-Signature"] == "verified"
         assert good.json()["processed"][0]["band"] == "good fit"
     assert verify_v3(secret, "POST", "u", b"", str(ts - 10 * 60 * 1000), sig, now_ms=ts) == (False, "timestamp outside the 5-minute window")
@@ -207,3 +207,75 @@ async def test_a_live_crew_behind_an_unsigned_app_gets_401_on_every_request(laye
 def test_fake_mode_banner_says_unsigned_is_fixture_only():
     _, banner = cli.serve_app(_serve_args())
     assert "signature check: off — fixture/fake mode only" in banner and "model: recorded fake" in banner
+
+
+# -- review fix 3 (D-22): idempotent on eventId, acknowledged before the crew runs ------------------
+
+
+async def test_default_mode_acknowledges_queued_and_triages_in_the_background(crew):
+    app = create_app(crew, client_secret=None)
+    async with await _client(app) as c:
+        r = await c.post("/hubspot/webhook", json=[event_for("hs-1001")])
+        assert r.status_code == 200 and [p["status"] for p in r.json()["processed"]] == ["queued"]
+        # the background task has run by the time the ASGI call completes
+        assert [n.kind for n in crew.hubspot.list_notes("hs-1001")] == ["draft", "triage"]
+        assert (await c.get("/health")).json()["events_seen"] == 1
+
+
+async def test_a_hubspot_retry_with_the_same_event_id_does_not_rerun_or_add_notes(crew):
+    app = create_app(crew, client_secret=None)
+    ev = event_for("hs-1001")
+    async with await _client(app) as c:
+        first = await c.post("/hubspot/webhook", json=[ev])
+        retry = await c.post("/hubspot/webhook", json=[dict(ev, attemptNumber=1)])
+        assert first.status_code == retry.status_code == 200
+        p = retry.json()["processed"][0]
+        assert p["status"] == "duplicate_event" and p["first"]["status"] == "triaged" and p["first"]["band"] == "good fit"
+        waited = await c.post("/hubspot/webhook?wait=true", json=[ev])  # also deduped in wait mode
+        assert waited.json()["processed"][0]["status"] == "duplicate_event"
+    assert len(crew.results) == 1 and len(crew.hubspot.notes) == 2
+    assert crew.layer.db.conn.execute("SELECT COUNT(*) AS n FROM run_log WHERE run_id='g2c-web' AND agent='orchestrator'").fetchone()["n"] == 1
+
+
+async def test_fallback_key_contact_and_subscription_type_catches_a_second_event_for_the_same_contact(crew):
+    app = create_app(crew, client_secret=None)
+    no_id = {k: v for k, v in event_for("hs-1004").items() if k != "eventId"}
+    async with await _client(app) as c:
+        a = await c.post("/hubspot/webhook?wait=true", json=[no_id])
+        b = await c.post("/hubspot/webhook?wait=true", json=[event_for("hs-1004")])  # new eventId, same contact + type
+        assert a.json()["processed"][0]["status"] == "triaged"
+        assert b.json()["processed"][0]["status"] == "duplicate_event"
+    assert len(crew.results) == 1 and [n.kind for n in crew.hubspot.list_notes("hs-1004")] == ["triage"]
+
+
+async def test_the_200_is_sent_before_the_crew_runs(crew, monkeypatch):
+    order: list[str] = []
+    real_run = crew.run_lead
+
+    async def run_lead(lead):
+        order.append("crew")
+        return await real_run(lead)
+
+    monkeypatch.setattr(crew, "run_lead", run_lead)
+    app = create_app(crew, client_secret=None)
+    body = json.dumps([event_for("hs-1002")]).encode()
+    sent = {"done": False}
+
+    async def receive():
+        if sent["done"]:
+            return {"type": "http.disconnect"}
+        sent["done"] = True
+        return {"type": "http.request", "body": body, "more_body": False}
+
+    async def send(message):
+        if message["type"] == "http.response.start":
+            order.append(f"status {message['status']}")
+        elif message["type"] == "http.response.body" and not message.get("more_body"):
+            order.append("body sent")
+
+    scope = {"type": "http", "asgi": {"version": "3.0"}, "http_version": "1.1", "method": "POST", "scheme": "http", "path": "/hubspot/webhook",
+             "raw_path": b"/hubspot/webhook", "query_string": b"", "root_path": "", "headers": [(b"content-type", b"application/json"), (b"host", b"testserver")],
+             "server": ("testserver", 80), "client": ("127.0.0.1", 1)}
+    await app(scope, receive, send)
+    assert order == ["status 200", "body sent", "crew"]
+    assert len(crew.hubspot.list_notes("hs-1002")) >= 1

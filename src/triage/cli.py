@@ -114,7 +114,7 @@ def cmd_replay(args: argparse.Namespace) -> int:
 
     leads = load_leads()
     ids = args.ids or [lead.id for lead in leads]
-    url = args.url.rstrip("/") + "/hubspot/webhook"
+    url = args.url.rstrip("/") + "/hubspot/webhook?wait=true"  # local replay waits for the outcome so it can print it (D-22)
     with httpx.Client(timeout=args.timeout) as client:
         for i in range(0, len(ids), args.batch):
             batch = [event_for(cid) for cid in ids[i:i + args.batch]]
