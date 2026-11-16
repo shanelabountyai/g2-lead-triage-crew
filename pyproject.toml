@@ -6,9 +6,9 @@ readme = "README.md"
 requires-python = ">=3.12"
 license = { text = "MIT" }
 dependencies = [
-    # The shared layer, pinned to the exact kickoff commit this build was read against (D-2).
-    # Move the pin to the v0.1.0 tag once the owner merges and tags g0-shared-layer.
-    "g0-shared-layer @ git+https://github.com/shanelabountyai/g0-shared-layer@1cb74df6c3e4a5212f681f7f7bdf594b37b53070",
+    # The shared layer, pinned to G0 main after g0-shared-layer PR #1 merged (D-2, D-27).
+    # Move the pin to the v0.1.0 tag once the owner tags g0-shared-layer.
+    "g0-shared-layer @ git+https://github.com/shanelabountyai/g0-shared-layer@6f5e605f8b485afa95f1cbef73911057b8b4dec5",
     "claude-agent-sdk>=0.2.170,<0.3",
     "pydantic>=2.11,<3",
     "fastapi>=0.115",

@@ -108,3 +108,15 @@ def test_real_client_never_writes_a_note_to_a_real_address():
         client.create_note("777", "hello")
     assert all(r.url.path != "/crm/v3/objects/notes" for r in rec.requests)  # the write never left
     client.close()
+
+
+def test_triage_live_without_ids_and_without_the_local_batch_file_fails_clearly(monkeypatch, tmp_path, capsys):
+    """Review nit (D-28): a fresh clone has no gitignored fixtures/hubspot-batch-result.json; `triage live` with no ids
+    must say so and exit 2, not raise FileNotFoundError. Runs before any HubSpot client is built: no network."""
+    from triage import cli
+
+    monkeypatch.setattr(cli, "FIXTURES_DIR", cli.REPO_DIR / "fixtures-absent-for-test")
+    monkeypatch.setattr(cli, "client_from_env", lambda: pytest.fail("must not build a HubSpot client"))
+    assert cli.main(["live"]) == 2
+    err = capsys.readouterr().err
+    assert "no contact ids given" in err and "hubspot-batch-result.json" in err

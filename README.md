@@ -4,7 +4,7 @@ Build-log G2, Agentic AI track. A new HubSpot lead triggers an **orchestrator** 
 
 It is built twice: **G2·C** in Python with the Claude Agent SDK (this README; built first, unattended, D-1) and **G2·B** in n8n (the owner's hand build afterwards, from the same synthetic leads and the same contracts). Both attach to the shared capability layer **G0** (`shanelabountyai/g0-shared-layer`) instead of carrying their own rules.
 
-Spec: `docs/prd.md`. Every decision is numbered in `docs/DECISIONS.md` (D-1..D-10 the owner's, D-11..D-19 this build's). Backlog: `docs/BACKLOG.md`. Eval: `docs/eval-report.md`. State and the owner's hand steps: `NEXT.md`.
+Spec: `docs/prd.md`. Every decision is numbered in `docs/DECISIONS.md` (D-1..D-10 the owner's, D-11..D-28 this build's). Backlog: `docs/BACKLOG.md`. Eval: `docs/eval-report.md`. State and the owner's hand steps: `NEXT.md`.
 
 ## G2·C (code) — for a reviewer
 
@@ -55,7 +55,7 @@ The rubric's buyer definition comes from `li-lead-gen-tools` (D-5): D-1 "any lea
 ### How to run on fixtures (no key, no network)
 
 ```bash
-uv sync --all-groups                     # Python 3.12 venv; pins g0-shared-layer at commit 1cb74df (D-2)
+uv sync --all-groups                     # Python 3.12 venv; pins g0-shared-layer at G0 main commit 6f5e605 (D-2, D-27)
 uv run pytest                            # 79 tests, ~2 s, no network, no model
 uv run triage run --fixtures             # 20 leads through the crew on the recorded fake → out/<run_id>/{run-log.json,notes.md,eval-report.md}
 uv run triage eval --run-log out/<run_id>/run-log.json

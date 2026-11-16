@@ -185,3 +185,21 @@ def test_find_duplicate_same_createdate_falls_back_to_id(hubspot, leads):
     fake.add_contact(orig); fake.add_contact(twin)
     assert find_duplicate(fake, twin).id == "940"
     assert find_duplicate(fake, orig) is None
+
+
+def test_enforce_draft_flags_by_status_only_supported_with_null_source_passes(layer, monkeypatch):
+    """G0 D-23..D-29: an offer-only claim comes back `supported` with `source: null`. G2 reads only `status`,
+    so it is not flagged and nothing dereferences the missing source; `needs_source` still is."""
+    from shared_layer.capabilities import claims_registry
+
+    from triage.models import Draft
+    from triage.workers import enforce_draft
+
+    crew = Crew.for_fixtures(layer=layer, run_id="t")
+    canned = claims_registry.Output(results=[
+        claims_registry.ClaimResult(claim="Save 15% on the first month.", status="supported", matched_on="none", source=None, note="offer-only"),
+        claims_registry.ClaimResult(claim="73% of teams stall.", status="needs_source", matched_on="none", source=None, note="no row"),
+    ])
+    monkeypatch.setattr(crew.layer, "check_claims", lambda **kw: canned)
+    out = enforce_draft(crew, Draft(subject="Hi", body="Save 15% on the first month. 73% of teams stall."))
+    assert out.created and out.claims == ["needs_source: '73% of teams stall.' — no row"]

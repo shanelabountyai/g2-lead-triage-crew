@@ -76,11 +76,19 @@ def cmd_eval(args: argparse.Namespace) -> int:
 def cmd_live(args: argparse.Namespace) -> int:
     """H4 without the webhook: run the crew on contacts already in HubSpot, same code path as the webhook's `process`.
     Notes land on synthetic @example.com contacts only (assert_synthetic in the client); nothing is sent."""
+    ids = list(args.ids)
+    if not ids:
+        # The default id list is the owner's local, gitignored HubSpot batch result (D-28); a fresh clone has none.
+        batch = FIXTURES_DIR / "hubspot-batch-result.json"
+        if not batch.is_file():
+            print(f"triage live: no contact ids given and {batch.relative_to(REPO_DIR)} does not exist (it is gitignored and "
+                  "written only by the owner's own HubSpot batch create); pass ids: `triage live <id> [<id> ...]`", file=sys.stderr)
+            return 2
+        ids = [r["id"] for r in json.loads(batch.read_text(encoding="utf-8"))["results"]]
     hubspot = client_from_env()
     if hubspot.name != "real":
         print("triage live: HUBSPOT_PRIVATE_APP_TOKEN is not set; refusing to run against the fake", file=sys.stderr)
         return 2
-    ids = args.ids or [r["id"] for r in json.loads((FIXTURES_DIR / "hubspot-batch-result.json").read_text(encoding="utf-8"))["results"]]
     crew = _crew(args, hubspot=hubspot)
 
     async def go() -> int:
@@ -201,7 +209,7 @@ def main(argv: list[str] | None = None) -> int:
     p = sub.add_parser("live", help="H4 without the webhook: triage contacts already in HubSpot and write notes (synthetic contacts only)")
     p.add_argument("--judge", choices=["deterministic", "claude"], default="deterministic")
     p.add_argument("--out", default=str(REPO_DIR / "out"))
-    p.add_argument("ids", nargs="*", help="HubSpot contact ids (default: those in fixtures/hubspot-batch-result.json)")
+    p.add_argument("ids", nargs="*", help="HubSpot contact ids (default: those in the local, gitignored fixtures/hubspot-batch-result.json; fails clearly if absent)")
     p.set_defaults(fn=cmd_live)
 
     p = sub.add_parser("replay", help="post the fixture leads as contact.creation events to a running server")

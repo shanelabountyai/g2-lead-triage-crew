@@ -1,5 +1,9 @@
 # NEXT
 
+State (2026-11-16, cleanup swarm): **G0 repinned to `6f5e605f8b485afa95f1cbef73911057b8b4dec5`** (G0 `main` after g0-shared-layer PR #1 merged; D-27). `uv lock --check` passes. **96 tests pass** (94 before and after the repin, unchanged; +1 test pinning that G2 reads only a claim's `status`, so G0's offer-only `supported` with `source: null` is never flagged or dereferenced; +1 for D-28). `triage live` with no ids now exits 2 with a clear message on a fresh clone instead of a `FileNotFoundError` (D-28). README decision range now D-11..D-28. No CI in this repo; results are local. Owner items unchanged: H1 review/merge PR #1, H5 G2·B in n8n; move the pin to G0's `v0.1.0` tag if one is cut. **Flag, not changed:** the H3 entry below names the HubSpot portal id in this public file; removing it needs an owner decision.
+
+---
+
 State (2026-11-09, close): **Committed and pushed on `kickoff` (2e10d86); eval report carries the live HubSpot numbers.** Nothing left for the agent. Owner steps only: H1 review/merge PR #1, H5 build G2·B in n8n by hand, then compare on AC 5. Webhook path (HUBSPOT_CLIENT_SECRET, tunnel) still untested live.
 
 ---

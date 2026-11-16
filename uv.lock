@@ -260,9 +260,10 @@ wheels = [
 [[package]]
 name = "g0-shared-layer"
 version = "0.1.0"
-source = { git = "https://github.com/shanelabountyai/g0-shared-layer?rev=1cb74df6c3e4a5212f681f7f7bdf594b37b53070#1cb74df6c3e4a5212f681f7f7bdf594b37b53070" }
+source = { git = "https://github.com/shanelabountyai/g0-shared-layer?rev=6f5e605f8b485afa95f1cbef73911057b8b4dec5#6f5e605f8b485afa95f1cbef73911057b8b4dec5" }
 dependencies = [
     { name = "mcp" },
+    { name = "mcp-types" },
     { name = "pydantic" },
 ]
 
@@ -291,7 +292,7 @@ requires-dist = [
     { name = "anyio", specifier = ">=4" },
     { name = "claude-agent-sdk", specifier = ">=0.2.170,<0.3" },
     { name = "fastapi", specifier = ">=0.115" },
-    { name = "g0-shared-layer", git = "https://github.com/shanelabountyai/g0-shared-layer?rev=1cb74df6c3e4a5212f681f7f7bdf594b37b53070" },
+    { name = "g0-shared-layer", git = "https://github.com/shanelabountyai/g0-shared-layer?rev=6f5e605f8b485afa95f1cbef73911057b8b4dec5" },
     { name = "httpx", specifier = ">=0.27" },
     { name = "pydantic", specifier = ">=2.11,<3" },
     { name = "uvicorn", specifier = ">=0.30" },
