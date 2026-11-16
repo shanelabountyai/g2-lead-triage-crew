@@ -4,7 +4,7 @@ Build-log G2, Agentic AI track. A new HubSpot lead triggers an **orchestrator** 
 
 It is built twice: **G2·C** in Python with the Claude Agent SDK (this README; built first, unattended, D-1) and **G2·B** in n8n (the owner's hand build afterwards, from the same synthetic leads and the same contracts). Both attach to the shared capability layer **G0** (`shanelabountyai/g0-shared-layer`) instead of carrying their own rules.
 
-Spec: `docs/prd.md`. Every decision is numbered in `docs/DECISIONS.md` (D-1..D-10 the owner's, D-11..D-28 this build's). Backlog: `docs/BACKLOG.md`. Eval: `docs/eval-report.md`. State and the owner's hand steps: `NEXT.md`.
+Spec: `docs/prd.md`. Every decision is numbered in `docs/DECISIONS.md` (D-1..D-10 the owner's, D-11..D-29 this build's). Backlog: `docs/BACKLOG.md`. Eval: `docs/eval-report.md`. State and the owner's hand steps: `NEXT.md`.
 
 ## G2·C (code) — for a reviewer
 
